@@ -12,118 +12,120 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { History } from 'history';
 import {
   PageSection,
   PageSectionVariants,
-  Text,
-  TextContent,
   Tabs,
   Tab,
-  Button,
   Alert,
   AlertActionCloseButton,
-  AlertGroup
+  AlertGroup,
+  Modal,
+  ModalVariant,
+  AlertVariant,
+  TextContent,
+  Text,
+  Button,
 } from '@patternfly/react-core';
-
-import WorkspaceIndicator from '../../components/Workspace/Indicator';
+import { WorkspaceStatus } from '../../services/api/workspaceStatus';
+import Header from './Header';
 import CheProgress from '../../components/Progress';
 import { AppState } from '../../store';
-import * as WorkspacesStore from '../../store/Workspaces';
-import DevfileEditor, { DevfileEditor as Editor } from '../../components/DevfileEditor';
+import OverviewTab, { OverviewTab as Overview } from './OverviewTab';
+import EditorTab, { EditorTab as Editor } from './DevfileTab';
 import { selectIsLoading, selectWorkspaceById } from '../../store/Workspaces/selectors';
 
 import './WorkspaceDetails.styl';
 
-const SECTION_THEME = PageSectionVariants.light;
+export const SECTION_THEME = PageSectionVariants.light;
 
 type Props =
   // selectors
   {
     isLoading: boolean,
     workspace: che.Workspace | null | undefined,
-  }
-  & { history: History }
-  & MappedProps;
+  } & {
+    onSave: (workspace: che.Workspace) => Promise<void>
+  } & MappedProps;
 
 type State = {
-  activeTabKey: number;
-  workspace: che.Workspace | undefined;
-  alertVisible: boolean;
-  isDevfileValid: boolean;
-  hasRequestErrors: boolean; // todo provide error handling
+  activeTabKey?: number;
+  workspace?: che.Workspace | null | undefined;
+  alertVisible?: boolean;
+  hasWarningMessage?: boolean;
+  hasDiscardChangesMessage?: boolean;
 };
 
-class WorkspaceDetails extends React.PureComponent<Props, State> {
-  private timeoutId: any;
-  private alert: { variant?: 'success' | 'danger'; title?: string } = {};
-  private showAlert: (variant: 'success' | 'danger', title: string, timeDelay?: number) => void;
-  private hideAlert: () => void;
+export class WorkspaceDetails extends React.PureComponent<Props, State> {
+  private alert: { variant?: AlertVariant.success | AlertVariant.danger; title?: string } = {};
+  public showAlert: (variant: AlertVariant.success | AlertVariant.danger, title: string, timeDelay?: number) => void;
+  private readonly hideAlert: () => void;
   private readonly handleTabClick: (event: any, tabIndex: any) => void;
-  private readonly cancelChanges: () => void;
 
-  private devfileEditorRef: React.RefObject<Editor>;
+  private readonly editorTabPageRef: React.RefObject<Editor>;
+  private readonly overviewTabPageRef: React.RefObject<Overview>;
 
-  constructor(props: Props) {
+  constructor(props) {
     super(props);
+
+    this.editorTabPageRef = React.createRef<Editor>();
+    this.overviewTabPageRef = React.createRef<Overview>();
 
     this.state = {
       workspace: this.props.workspace ? Object.assign({}, this.props.workspace) : undefined,
-      activeTabKey: 4,
+      activeTabKey: 0,
       alertVisible: false,
-      isDevfileValid: true,
-      hasRequestErrors: false
+      hasWarningMessage: false,
+      hasDiscardChangesMessage: false,
     };
 
     // Toggle currently active tab
     this.handleTabClick = (event: any, tabIndex: any): void => {
-      this.setState({ activeTabKey: tabIndex });
+      if ((this.state.activeTabKey === 4 && this.editorTabPageRef.current?.state.hasChanges) ||
+        (this.state.activeTabKey === 0 && this.overviewTabPageRef.current?.hasChanges)) {
+        this.setState({ hasDiscardChangesMessage: true });
+        return;
+      }
+      this.setState({ hasDiscardChangesMessage: false, activeTabKey: tabIndex });
     };
-    this.cancelChanges = (): void => {
-      clearTimeout(this.timeoutId);
-      this.setState({ workspace: Object.assign({}, this.props.workspace) });
-    };
-    this.showAlert = (variant: 'success' | 'danger', title: string, timeDelay?: number): void => {
+    let showAlertTimer;
+    this.showAlert = (variant: AlertVariant.success | AlertVariant.danger, title: string, timeDelay?: number): void => {
       this.alert = { variant, title };
       this.setState({ alertVisible: true });
-      setTimeout(() => {
+      if (showAlertTimer) {
+        clearTimeout(showAlertTimer);
+      }
+      showAlertTimer = setTimeout(() => {
         this.setState({ alertVisible: false });
       }, timeDelay ? timeDelay : 2000);
     };
     this.hideAlert = (): void => this.setState({ alertVisible: false });
-    this.devfileEditorRef = React.createRef<Editor>();
   }
 
-  componentDidUpdate(): void {
-    if (
-      this.props.workspace &&
-      (
-        !this.state.workspace ||
-        this.isEqualObject(this.props.workspace.devfile, this.state.workspace?.devfile) === false
-      )
-    ) {
-      this.setState({ workspace: this.props.workspace });
-      this.updateEditor(this.props.workspace.devfile);
+  componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
+    if (this.props.workspace && (this.props.workspace?.status as any === WorkspaceStatus.STOPPED)) {
+      this.setState({ hasWarningMessage: false });
     }
   }
 
-  private updateEditor(devfile: che.WorkspaceDevfile): void {
-    this.devfileEditorRef.current?.updateContent(devfile);
-    this.setState({ isDevfileValid: true });
+  private handleCancelChanges(): void {
+    if (this.state.activeTabKey === 4) {
+      this.editorTabPageRef.current?.cancelChanges();
+    } else if (this.state.activeTabKey === 0) {
+      this.overviewTabPageRef.current?.cancelChanges();
+    }
+    this.setState({ hasDiscardChangesMessage: false });
   }
 
   public render(): React.ReactElement {
-    const { workspace, alertVisible } = this.state;
-
-    if (this.props.isLoading) {
-      return <div>Workspace is loading...</div>;
-    }
+    const { alertVisible } = this.state;
+    const { workspace } = this.props;
 
     if (!workspace) {
       return <div>Workspace not found.</div>;
     }
 
-    const workspaceName = workspace.devfile.metadata.name;
+    const workspaceName = workspace.devfile.metadata.name as string;
 
     return (
       <React.Fragment>
@@ -136,96 +138,64 @@ class WorkspaceDetails extends React.PureComponent<Props, State> {
             />
           </AlertGroup>
         )}
-        <PageSection variant={SECTION_THEME} className='workspace-details-header'>
-          <TextContent>
-            <Text component='h1'>
-              Workspaces&nbsp;<b>&nbsp;&gt;&nbsp;</b>&nbsp;{workspaceName}&nbsp;
-              <WorkspaceIndicator status={workspace.status} />
-              <span>{workspace.status}</span>
-            </Text>
-          </TextContent>
-        </PageSection>
+        <Header workspaceName={workspaceName} status={workspace.status} />
         <PageSection variant={SECTION_THEME} className='workspace-details-tabs'>
+          {(this.state.hasWarningMessage) && (
+            <Alert variant={AlertVariant.warning} isInline
+              title={(<React.Fragment>
+                The workspace <em>{workspaceName}&nbsp;</em> should be restarted to apply changes.
+              </React.Fragment>)}
+              actionClose={(<AlertActionCloseButton
+                onClose={() => this.setState({ hasWarningMessage: false })} />)
+              } />
+          )}
           <Tabs activeKey={this.state.activeTabKey} onSelect={this.handleTabClick}>
-            <Tab eventKey={0} title='Overview'>
-              <br /><p>Tab 1 section</p>
+            <Tab eventKey={0} title="Overview">
+              <CheProgress isLoading={this.props.isLoading} />
+              <OverviewTab
+                ref={this.overviewTabPageRef}
+                onSave={workspace => this.onSave(workspace)}
+              />
             </Tab>
-            <Tab eventKey={1} title='Projects'>
-              <br /><p>Tab 2 section</p>
-            </Tab>
-            <Tab eventKey={2} title='Plugins'>
-              <br /><p>Tab 3 section</p>
-            </Tab>
-            <Tab eventKey={3} title='Editors'>
-              <br /><p>Tab 4 section</p>
-            </Tab>
-            <Tab eventKey={4} title='Devfile'>
-              <CheProgress isLoading={this.props.isLoading} /><br />
-              <TextContent className='workspace-details-editor'>
-                <Text component='h3' className='label'></Text>
-                <DevfileEditor
-                  ref={this.devfileEditorRef}
-                  devfile={workspace.devfile}
-                  decorationPattern='location[ \t]*(.*)[ \t]*$'
-                  onChange={(devfile, isValid) => {
-                    this.onDevfileChange(workspace, devfile, isValid);
-                  }}
-                />
-                {(!this.state.isDevfileValid || this.state.hasRequestErrors) && (
-                  <Button onClick={(): void => {
-                    this.updateEditor(workspace.devfile);
-                  }} variant='secondary' className='cancel-button'>
-                    Cancel
-                  </Button>
-                )}
-              </TextContent>
+            <Tab eventKey={4} title="Devfile">
+              <CheProgress isLoading={this.props.isLoading} />
+              <EditorTab
+                ref={this.editorTabPageRef}
+                onSave={workspace => this.onSave(workspace)} />
             </Tab>
           </Tabs>
+          <Modal variant={ModalVariant.small} isOpen={this.state.hasDiscardChangesMessage}
+            title="Unsaved Changes"
+            onClose={() => this.handleCancelChanges()}
+            actions={[
+              <Button key="confirm" variant="primary" onClick={() => {
+                this.setState({ hasDiscardChangesMessage: false });
+              }}>
+                Discard Changes
+                   </Button>,
+              <Button key="cancel" variant="secondary" onClick={() => this.handleCancelChanges()}>
+                Cancel
+                   </Button>,
+            ]}
+          >
+            <TextContent>
+              <Text>
+                You have unsaved changes. You may go ahead and discard all changes, or close this window and save them.
+              </Text>
+            </TextContent>
+          </Modal>
         </PageSection>
       </React.Fragment>
     );
   }
 
-  private onDevfileChange(workspace: che.Workspace, newDevfile: che.WorkspaceDevfile, isValid: boolean): void {
-    this.setState({ isDevfileValid: isValid });
-    clearTimeout(this.timeoutId);
-    if (!isValid) {
-      return;
+  private async onSave(workspace: che.Workspace): Promise<void> {
+    if (this.props.workspace && (this.props.workspace?.status as any !== WorkspaceStatus.STOPPED)) {
+      this.setState({ hasWarningMessage: true });
     }
-    if (this.isEqualObject(workspace.devfile, newDevfile)) {
-      return;
-    }
-
-    this.timeoutId = setTimeout(async () => {
-      const newWorkspaceObj = Object.assign({}, workspace);
-      newWorkspaceObj.devfile = newDevfile;
-
-      const namespace = newWorkspaceObj.namespace;
-      const workspaceName = newWorkspaceObj.devfile.metadata.name;
-
-      try {
-        await this.props.updateWorkspace(newWorkspaceObj);
-        this.setState({ hasRequestErrors: false });
-        this.showAlert('success', 'Workspace has been updated', 2000);
-
-        const pathname = `/workspace/${namespace}/${workspaceName}`;
-        this.props.history.replace({ pathname });
-      } catch (e) {
-        this.setState({ hasRequestErrors: true });
-        this.showAlert('danger', e, 10000);
-      }
-    }, 2000);
+    await this.props.onSave(workspace);
   }
 
-  // TODO rework this temporary solution
-  private sortObject(o: che.WorkspaceDevfile): che.WorkspaceDevfile {
-    return Object.keys(o).sort().reduce((r, k) => (r[k] = o[k], r), {} as che.WorkspaceDevfile);
-  }
-
-  // TODO rework this temporary solution
-  private isEqualObject(a: che.WorkspaceDevfile, b: che.WorkspaceDevfile): boolean {
-    return JSON.stringify(this.sortObject(a)) == JSON.stringify(this.sortObject(b));
-  }
 }
 
 const mapStateToProps = (state: AppState) => ({
@@ -235,7 +205,9 @@ const mapStateToProps = (state: AppState) => ({
 
 const connector = connect(
   mapStateToProps,
-  WorkspacesStore.actionCreators
+  null,
+  null,
+  { forwardRef: true },
 );
 
 type MappedProps = ConnectedProps<typeof connector>

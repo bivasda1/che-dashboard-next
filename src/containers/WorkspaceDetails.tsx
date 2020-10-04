@@ -21,18 +21,22 @@ import {
   selectIsLoading,
   selectAllWorkspaces,
 } from '../store/Workspaces/selectors';
-import WorkspaceDetailsPage from '../pages/WorkspaceDetails';
+import WorkspaceDetailsPage, { WorkspaceDetails as Details } from '../pages/WorkspaceDetails';
+import { AlertVariant } from '@patternfly/react-core';
 
 type Props =
   MappedProps
   & { history: History }
   & RouteComponentProps<{ namespace: string; workspaceName: string }>; // incoming parameters
 
-export class WorkspaceDetails extends React.PureComponent<Props> {
+class WorkspaceDetails extends React.PureComponent<Props> {
+  workspaceDetailsPageRef: React.RefObject<Details>;
+  private showAlert: (variant: AlertVariant.success | AlertVariant.danger, title: string, timeDelay?: number) => void;
 
   constructor(props: Props) {
     super(props);
 
+    this.workspaceDetailsPageRef = React.createRef<Details>();
     const { namespace, workspaceName } = this.props.match.params;
     const workspace = this.props.allWorkspaces?.find(workspace =>
       workspace.namespace === namespace && workspace.devfile.metadata.name === workspaceName);
@@ -46,14 +50,39 @@ export class WorkspaceDetails extends React.PureComponent<Props> {
     if (!allWorkspaces || allWorkspaces.length === 0) {
       this.props.requestWorkspaces();
     }
+    const showAlert = this.workspaceDetailsPageRef.current?.showAlert;
+    this.showAlert = (variant: AlertVariant.success | AlertVariant.danger, title: string, timeDelay?: number) => {
+      if (showAlert) {
+        showAlert(variant, title, timeDelay);
+      }
+    };
   }
 
   render() {
     return (
       <WorkspaceDetailsPage
-        history={this.props.history}
+        ref={this.workspaceDetailsPageRef}
+        onSave={(workspace: che.Workspace) => this.onSave(workspace)}
       />
     );
+  }
+
+  async onSave(newWorkspaceObj: che.Workspace): Promise<void> {
+    const namespace = newWorkspaceObj.namespace;
+    const workspaceName = newWorkspaceObj.devfile.metadata.name;
+
+    try {
+      await this.props.updateWorkspace(newWorkspaceObj);
+      this.showAlert(AlertVariant.success, 'Workspace has been updated', 2000);
+      const pathname = `/workspace/${namespace}/${workspaceName}`;
+      this.props.history.replace({ pathname });
+      this.props.setWorkspaceId(newWorkspaceObj.id);
+    } catch (e) {
+      if (this.workspaceDetailsPageRef.current?.state.activeTabKey === 4) {
+        throw new Error(e.toString().replace(/^Error: /gi, ''));
+      }
+      this.showAlert(AlertVariant.danger, 'Failed to update workspace data', 10000);
+    }
   }
 
 }
