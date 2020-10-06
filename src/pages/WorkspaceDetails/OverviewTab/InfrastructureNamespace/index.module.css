@@ -10,12 +10,12 @@
 *   Red Hat, Inc. - initial API and implementation
 */
 
-.namespaceSelector {
-  max-width: 350px;
+.kubernetesNamespace {
+  min-height: 38px;
 }
 
-.namespaceSelector input {
-  padding-left: 0;
+.namespaceName {
+  padding-top: 6px;
   font-size: large;
-  background: inherit;
+  line-height: 25px;
 }

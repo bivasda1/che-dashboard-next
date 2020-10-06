@@ -19,18 +19,13 @@ import { WorkspaceNameFormGroup } from './WorkspaceName';
 import InfrastructureNamespaceFormGroup from './InfrastructureNamespace';
 import { selectWorkspaceById } from '../../../store/Workspaces/selectors';
 
-type Props =
-  // selectors
-  {
-    workspace: che.Workspace | null | undefined,
-  } & {
-    onSave: (workspace: che.Workspace) => Promise<void>
-  } & MappedProps;
+type Props = {
+  onSave: (workspace: che.Workspace) => Promise<void>
+} & MappedProps;
 
 export type State = {
   storageType?: StorageType;
   devfile?: che.WorkspaceDevfile;
-  namespace?: che.KubernetesNamespace;
   workspaceName?: string;
 };
 
@@ -59,11 +54,6 @@ export class OverviewTab extends React.Component<Props, State> {
     if (this.workspaceNameRef.current && this.workspaceNameRef.current?.cancelChanges) {
       this.workspaceNameRef.current?.cancelChanges();
     }
-  }
-
-  private async handleInfrastructureNamespaceSave(namespace: che.KubernetesNamespace): Promise<void> {
-    this.setState({ namespace });
-    await this.onSave();
   }
 
   private async handleWorkspaceNameSave(workspaceName: string): Promise<void> {
@@ -143,9 +133,7 @@ export class OverviewTab extends React.Component<Props, State> {
               onSave={_name => this.handleWorkspaceNameSave(_name)}
               ref={this.workspaceNameRef}
             />
-            <InfrastructureNamespaceFormGroup
-              onChange={(_namespace: che.KubernetesNamespace) => this.handleInfrastructureNamespaceSave(_namespace)}
-            />
+            <InfrastructureNamespaceFormGroup />
             <StorageTypeFormGroup
               storageType={storageType}
               onChange={_storageType => this.handleStorageSave(_storageType)}
@@ -159,13 +147,9 @@ export class OverviewTab extends React.Component<Props, State> {
   private async onSave(): Promise<void> {
     const workspace = this.props.workspace;
     const newDevfile = this.state.devfile as che.WorkspaceDevfile;
-    const newNamespace = this.state.namespace;
 
     const newWorkspaceObj = Object.assign({}, workspace) as che.Workspace;
     newWorkspaceObj.devfile = newDevfile;
-    if (newNamespace) {
-      newWorkspaceObj.namespace = newNamespace.toString();
-    }
 
     await this.props.onSave(newWorkspaceObj);
   }

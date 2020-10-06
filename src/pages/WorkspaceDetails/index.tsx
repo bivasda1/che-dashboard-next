@@ -40,16 +40,13 @@ import './WorkspaceDetails.styl';
 export const SECTION_THEME = PageSectionVariants.light;
 
 type Props =
-  // selectors
   {
-    isLoading: boolean,
-    workspace: che.Workspace | null | undefined,
-  } & {
     onSave: (workspace: che.Workspace) => Promise<void>
   } & MappedProps;
 
 type State = {
   activeTabKey?: number;
+  clickedTabIndex?: number;
   workspace?: che.Workspace | null | undefined;
   alertVisible?: boolean;
   hasWarningMessage?: boolean;
@@ -83,10 +80,19 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
     this.handleTabClick = (event: any, tabIndex: any): void => {
       if ((this.state.activeTabKey === 4 && this.editorTabPageRef.current?.state.hasChanges) ||
         (this.state.activeTabKey === 0 && this.overviewTabPageRef.current?.hasChanges)) {
-        this.setState({ hasDiscardChangesMessage: true });
+        const focusedElement = (
+          document.hasFocus() &&
+          document.activeElement !== document.body &&
+          document.activeElement !== document.documentElement &&
+          document.activeElement
+        ) || null;
+        if (focusedElement) {
+          (focusedElement as HTMLBaseElement).blur();
+        }
+        this.setState({ hasDiscardChangesMessage: true, clickedTabIndex: tabIndex });
         return;
       }
-      this.setState({ hasDiscardChangesMessage: false, activeTabKey: tabIndex });
+      this.setState({ hasDiscardChangesMessage: false, clickedTabIndex: tabIndex, activeTabKey: tabIndex });
     };
     let showAlertTimer;
     this.showAlert = (variant: AlertVariant.success | AlertVariant.danger, title: string, timeDelay?: number): void => {
@@ -102,18 +108,24 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
     this.hideAlert = (): void => this.setState({ alertVisible: false });
   }
 
-  componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
-    if (this.props.workspace && (this.props.workspace?.status as any === WorkspaceStatus.STOPPED)) {
+  componentDidUpdate(): void {
+    if (this.props.workspace && (WorkspaceStatus[this.props.workspace?.status] === WorkspaceStatus.STOPPED)) {
       this.setState({ hasWarningMessage: false });
     }
   }
 
-  private handleCancelChanges(): void {
+  private handleDiscardChanges(): void {
     if (this.state.activeTabKey === 4) {
       this.editorTabPageRef.current?.cancelChanges();
     } else if (this.state.activeTabKey === 0) {
       this.overviewTabPageRef.current?.cancelChanges();
     }
+
+    const tabIndex = this.state.clickedTabIndex;
+    this.setState({ hasDiscardChangesMessage: false, activeTabKey: tabIndex });
+  }
+
+  private handleCancelChanges(): void {
     this.setState({ hasDiscardChangesMessage: false });
   }
 
@@ -168,9 +180,7 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
             title="Unsaved Changes"
             onClose={() => this.handleCancelChanges()}
             actions={[
-              <Button key="confirm" variant="primary" onClick={() => {
-                this.setState({ hasDiscardChangesMessage: false });
-              }}>
+              <Button key="confirm" variant="primary" onClick={() => this.handleDiscardChanges()}>
                 Discard Changes
                    </Button>,
               <Button key="cancel" variant="secondary" onClick={() => this.handleCancelChanges()}>
@@ -190,7 +200,7 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
   }
 
   private async onSave(workspace: che.Workspace): Promise<void> {
-    if (this.props.workspace && (this.props.workspace?.status as any !== WorkspaceStatus.STOPPED)) {
+    if (this.props.workspace && (WorkspaceStatus[this.props.workspace?.status] !== WorkspaceStatus.STOPPED)) {
       this.setState({ hasWarningMessage: true });
     }
     await this.props.onSave(workspace);

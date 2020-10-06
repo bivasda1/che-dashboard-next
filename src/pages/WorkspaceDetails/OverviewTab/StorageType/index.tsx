@@ -159,7 +159,7 @@ export class StorageTypeFormGroup extends React.PureComponent<Props, State> {
       <React.Fragment>
         <TextContent>
           <Alert variant={AlertVariant.warning} className={styles.warningAlert}
-            title="Note that after changing the storage type you may lose workspace-data." isInline />
+            title="Note that after changing the storage type you may lose workspace data." isInline />
           <Text component={TextVariants.h6}>Select the storage type</Text>
           {persistentTypeDescr}
           {ephemeralTypeDescr}

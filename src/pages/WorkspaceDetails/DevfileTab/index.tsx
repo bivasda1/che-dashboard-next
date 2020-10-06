@@ -17,6 +17,7 @@ import {
   Alert,
   AlertActionCloseButton,
   AlertVariant,
+  AlertGroup,
 } from '@patternfly/react-core';
 import DevfileEditor, { DevfileEditor as Editor } from '../../../components/DevfileEditor';
 import { connect, ConnectedProps } from 'react-redux';
@@ -101,33 +102,40 @@ export class EditorTab extends React.PureComponent<Props, State> {
 
     return (
       <React.Fragment>
+        <br />
         {(this.state.currentRequestError) && (
-          <React.Fragment>
-            <br />
-            <Alert variant={AlertVariant.danger} isInline title={this.state.currentRequestError}
-              actionClose={(
-                <AlertActionCloseButton onClose={() => this.setState({ currentRequestError: '' })} />)
-              } />
-          </React.Fragment>
+          <Alert
+            variant={AlertVariant.danger} isInline title={this.state.currentRequestError}
+            actionClose={<AlertActionCloseButton onClose={() => this.setState({ currentRequestError: '' })} />}
+          />
         )}
         <TextContent
           className={`workspace-details${this.state.isExpanded ? '-expanded' : ''}`}>
-          <EditorTools devfile={devfile as che.WorkspaceDevfile} handleExpand={(isExpanded) => {
-            this.setState({ isExpanded: isExpanded });
+          {(this.state.currentRequestError && this.state.isExpanded) && (
+            <AlertGroup isToast>
+              <Alert
+                variant={AlertVariant.danger}
+                title={this.state.currentRequestError}
+                actionClose={<AlertActionCloseButton onClose={() => this.setState({ currentRequestError: '' })} />}
+              />
+            </AlertGroup>
+          )}
+          <EditorTools devfile={devfile as che.WorkspaceDevfile} handleExpand={isExpanded => {
+            this.setState({ isExpanded });
           }} />
           <DevfileEditor
             ref={this.devfileEditorRef}
             devfile={originDevfile}
-            decorationPattern='location[ \t]*(.*)[ \t]*$'
+            decorationPattern="location[ \t]*(.*)[ \t]*$"
             onChange={(devfile, isValid) => {
               this.onDevfileChange(devfile, isValid);
             }}
           />
-          <Button onClick={() => this.cancelChanges()} variant='secondary' className='cancle-button'
+          <Button onClick={() => this.cancelChanges()} variant="secondary" className="cancle-button"
             isDisabled={!this.state.hasChanges && this.state.isDevfileValid && !this.state.hasRequestErrors}>
             Cancel
           </Button>
-          <Button onClick={async () => await this.onSave()} variant='primary' className='save-button'
+          <Button onClick={async () => await this.onSave()} variant="primary" className="save-button"
             isDisabled={!this.state.hasChanges || !this.state.isDevfileValid || this.state.hasRequestErrors}>
             Save
           </Button>

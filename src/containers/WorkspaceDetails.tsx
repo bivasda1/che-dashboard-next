@@ -54,6 +54,8 @@ class WorkspaceDetails extends React.PureComponent<Props> {
     this.showAlert = (variant: AlertVariant.success | AlertVariant.danger, title: string, timeDelay?: number) => {
       if (showAlert) {
         showAlert(variant, title, timeDelay);
+      } else {
+        console.error(title);
       }
     };
   }

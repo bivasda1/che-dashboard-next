@@ -12,66 +12,23 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { FormGroup, TextInput } from '@patternfly/react-core';
+import { FormGroup, Text, TextContent } from '@patternfly/react-core';
 import { AppState } from '../../../../store';
-import { InfrastructureNamespaceSelect } from './InfrastructureNamespaceSelect';
 
 import styles from './index.module.css';
 
-type Props =
-  MappedProps
-  & {
-    onChange: (namespace: che.KubernetesNamespace) => void;
-  };
-
-export class InfrastructureNamespaceFormGroup extends React.PureComponent<Props> {
-
-  private namespaces: che.KubernetesNamespace[];
-  private fieldId = 'infrastructure-namespace';
-
-  constructor(props: Props) {
-    super(props);
-
-    this.namespaces = this.props.infrastructureNamespace.namespaces;
-  }
-
-  private buildInfrastructureNamespaces(): React.ReactNode {
-    const namespaces = this.namespaces;
-    if (namespaces.length === 0) {
-      return;
-    }
-
-    if (namespaces.length === 1) {
-      const name = this.namespaces[0].attributes.displayName
-        || this.namespaces[0].name;
-      return (
-        <TextInput
-          aria-describedby="infrastructure-namespace-helper"
-          id={this.fieldId}
-          isDisabled
-          name="infrastructure-namespace"
-          readOnly
-          type="text"
-          value={name}
-        />
-      );
-    }
-
-    return (
-      <InfrastructureNamespaceSelect
-        fieldId={this.fieldId}
-        namespaces={this.namespaces}
-        onSelect={namespace => this.props.onChange(namespace)}
-      />
-    );
-  }
+export class InfrastructureNamespaceFormGroup extends React.PureComponent<MappedProps> {
 
   public render(): React.ReactElement {
-    const infrastructureNamespaces = this.buildInfrastructureNamespaces();
+    const { infrastructureNamespace: { namespaces } } = this.props;
 
     return (
-      <FormGroup label="Kubernetes Namespace" fieldId={this.fieldId}>
-        <div className={styles.namespaceSelector}>{infrastructureNamespaces}</div>
+      <FormGroup label="Kubernetes Namespace" fieldId="infrastructure-namespace" className={styles.kubernetesNamespace}>
+        <TextContent>
+          <Text className={styles.namespaceName}>
+            {namespaces[0].attributes.displayName || namespaces[0].name}
+          </Text>
+        </TextContent>
       </FormGroup>
     );
   }
