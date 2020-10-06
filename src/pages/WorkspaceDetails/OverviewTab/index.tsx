@@ -26,6 +26,7 @@ type Props = {
 export type State = {
   storageType?: StorageType;
   devfile?: che.WorkspaceDevfile;
+  namespace?: string;
   workspaceName?: string;
 };
 
@@ -39,8 +40,9 @@ export class OverviewTab extends React.Component<Props, State> {
       const devfile = Object.assign({}, this.props.workspace?.devfile);
       const storageType = this.getStorageType(devfile as che.WorkspaceDevfile);
       const workspaceName = devfile.metadata.name ? devfile.metadata.name : '';
+      const namespace = this.props.workspace?.namespace;
 
-      this.state = { devfile, storageType, workspaceName };
+      this.state = { devfile, storageType, workspaceName, namespace };
     }
 
     this.workspaceNameRef = React.createRef<WorkspaceNameFormGroup>();
@@ -118,9 +120,10 @@ export class OverviewTab extends React.Component<Props, State> {
   }
 
   public render(): React.ReactElement {
-    const devfile = Object.assign({}, this.props.workspace?.devfile);
-    const storageType = this.getStorageType(devfile as che.WorkspaceDevfile);
-    const workspaceName = devfile?.metadata.name;
+    const namespace = this.state.namespace as string;
+    const devfile = this.props.workspace?.devfile as che.WorkspaceDevfile;
+    const storageType = this.getStorageType(devfile);
+    const workspaceName = devfile.metadata.name as string;
 
     return (
       <React.Fragment>
@@ -129,11 +132,11 @@ export class OverviewTab extends React.Component<Props, State> {
         >
           <Form isHorizontal>
             <WorkspaceNameFormGroup
-              name={workspaceName as string}
+              name={workspaceName}
               onSave={_name => this.handleWorkspaceNameSave(_name)}
               ref={this.workspaceNameRef}
             />
-            <InfrastructureNamespaceFormGroup />
+            <InfrastructureNamespaceFormGroup namespace={namespace} />
             <StorageTypeFormGroup
               storageType={storageType}
               onChange={_storageType => this.handleStorageSave(_storageType)}
