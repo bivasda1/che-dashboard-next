@@ -13,18 +13,11 @@
 import React from 'react';
 import { PageSection, Text, TextContent, Label } from '@patternfly/react-core';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import {
-  BanIcon,
-  InProgressIcon,
-  ResourcesFullIcon,
-  ErrorCircleOIcon,
-  PauseCircleIcon,
-} from '@patternfly/react-icons/dist/js/icons';
 import { ROUTE } from '../../../route.enum';
-import { WorkspaceStatus } from '../../../services/api/workspaceStatus';
 import { SECTION_THEME } from '../index';
+import WorkspaceStatusLabel from './WorkspaceStatusLabel';
 
-import './Header.styl';
+import styles from './Header.module.css';
 
 type Props = {
   status: string | undefined;
@@ -33,35 +26,11 @@ type Props = {
 
 class Header extends React.PureComponent<Props> {
 
-  private get statusLabel(): React.ReactElement {
-    const { status } = this.props;
-
-    let color: 'blue' | 'cyan' | 'green' | 'orange' | 'purple' | 'red' | 'grey';
-
-    switch (status) {
-      case WorkspaceStatus[WorkspaceStatus.STOPPED]:
-        color = 'grey';
-        return (<Label color={color} icon={<BanIcon color={color} />}>{status}</Label>);
-      case WorkspaceStatus[WorkspaceStatus.RUNNING]:
-        color = 'green';
-        return (<Label color={color} icon={<ResourcesFullIcon color={color} />}>{status}</Label>);
-      case WorkspaceStatus[WorkspaceStatus.ERROR]:
-        color = 'red';
-        return (<Label color={color} icon={<ErrorCircleOIcon color={color} />}>{status}</Label>);
-      case WorkspaceStatus[WorkspaceStatus.PAUSED]:
-        color = 'orange';
-        return (<Label color={color} icon={<PauseCircleIcon color={color} />}>{status}</Label>);
-      default:
-        color = 'blue';
-        return (<Label color={color} icon={<InProgressIcon className="rotate" color={color} />}>{status}</Label>);
-    }
-  }
-
   public render(): React.ReactElement {
-    const { workspaceName } = this.props;
+    const { workspaceName, status } = this.props;
 
     return (
-      <PageSection variant={SECTION_THEME} className='workspace-details-header'>
+      <PageSection variant={SECTION_THEME} className={styles.workspaceDetailsHeader}>
         <Breadcrumb>
           <BreadcrumbItem to={`/#${ROUTE.WORKSPACES}`}>
             Workspaces
@@ -70,7 +39,8 @@ class Header extends React.PureComponent<Props> {
         </Breadcrumb>
         <TextContent>
           <Text component='h1'>
-            {workspaceName}{this.statusLabel}
+            {workspaceName}
+            <WorkspaceStatusLabel status={status} />
           </Text>
         </TextContent>
       </PageSection>
