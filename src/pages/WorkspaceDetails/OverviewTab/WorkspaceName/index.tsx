@@ -10,7 +10,7 @@
  *   Red Hat, Inc. - initial API and implementation
  */
 
-import { Button, FormGroup, Text, TextContent, TextInput, ValidatedOptions } from '@patternfly/react-core';
+import { Button, FormGroup, InputGroup, Text, TextContent, TextInput, ValidatedOptions } from '@patternfly/react-core';
 import { CheckIcon, ExclamationCircleIcon, PencilAltIcon, TimesIcon } from '@patternfly/react-icons';
 import React from 'react';
 
@@ -155,37 +155,38 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
             {(!isEditMode) && (
               <React.Fragment>
                 {name}
-                <Button data-testid="handle-edit-mode-toggle" variant="plain" onClick={() => this.handleEditModeToggle()}>
+                <Button data-testid="handle-edit-mode-toggle" variant="plain"
+                  onClick={() => this.handleEditModeToggle()}>
                   <PencilAltIcon />
-                </Button>
-              </React.Fragment>
-            )}
-            {(isEditMode) && (
-              <React.Fragment>
-                <TextInput
-                  value={name}
-                  isRequired
-                  type="text"
-                  id={fieldId}
-                  aria-describedby="workspace-name-helper"
-                  name="workspace-name"
-                  validated={validated}
-                  onChange={_name => this.handleChange(_name)}
-                  minLength={MIN_LENGTH}
-                  maxLength={MAX_LENGTH}
-                  placeholder="Enter a workspace name"
-                />
-                <Button variant="link" data-testid="handle-on-save" isDisabled={isSaveButtonDisable}
-                  onClick={async () => this.handleSave()}>
-                  <CheckIcon />
-                </Button>
-                <Button variant="plain" data-testid="handle-on-cancel" onClick={() => this.handleCancel()}>
-                  <TimesIcon />
                 </Button>
               </React.Fragment>
             )}
           </Text>
         </TextContent>
+        {(isEditMode) && (
+          <InputGroup className={styles.nameInput}>
+            <TextInput
+              value={name}
+              isRequired
+              type="text"
+              id={fieldId}
+              aria-describedby="workspace-name-helper"
+              name="workspace-name"
+              validated={validated}
+              onChange={_name => this.handleChange(_name)}
+              minLength={MIN_LENGTH}
+              maxLength={MAX_LENGTH}
+              placeholder="Enter a workspace name"
+            />
+            <Button variant="link" data-testid="handle-on-save" isDisabled={isSaveButtonDisable}
+              onClick={async () => this.handleSave()}>
+              <CheckIcon />
+            </Button>
+            <Button variant="plain" data-testid="handle-on-cancel" onClick={() => this.handleCancel()}>
+              <TimesIcon />
+            </Button>
+          </InputGroup>
+        )}
       </FormGroup>
     );
   }

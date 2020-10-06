@@ -16,15 +16,6 @@
   line-height: 38px;
 }
 
-.name input {
+.nameInput {
   max-width: 450px;
-}
-
-.name button {
-  padding: 0 15px;
-  outline: none;
-}
-
-.saveButton {
-  color: inherit;
 }
