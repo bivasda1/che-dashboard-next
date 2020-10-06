@@ -131,6 +131,7 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
       name: this.props.name,
       errorMessage: '',
       validated: ValidatedOptions.default,
+      hasChanges: false,
     });
     this.handleEditModeToggle();
   }
