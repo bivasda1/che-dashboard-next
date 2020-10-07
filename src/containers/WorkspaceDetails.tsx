@@ -37,7 +37,13 @@ class WorkspaceDetails extends React.PureComponent<Props> {
     super(props);
 
     this.workspaceDetailsPageRef = React.createRef<Details>();
-    const { namespace, workspaceName } = this.props.match.params;
+    const namespace = this.props.match.params.namespace;
+    const workspaceName = (this.props.match.params.workspaceName.split('&'))[0];
+    if (workspaceName !== this.props.match.params.workspaceName) {
+      const pathname = `/workspace/${namespace}/${workspaceName}`;
+      this.props.history.replace({ pathname });
+    }
+
     const workspace = this.props.allWorkspaces?.find(workspace =>
       workspace.namespace === namespace && workspace.devfile.metadata.name === workspaceName);
     if (workspace) {
@@ -96,7 +102,7 @@ const mapStateToProps = (state: AppState) => ({
 
 const connector = connect(
   mapStateToProps,
-  WorkspacesStore.actionCreators
+  WorkspacesStore.actionCreators,
 );
 
 type MappedProps = ConnectedProps<typeof connector>;
