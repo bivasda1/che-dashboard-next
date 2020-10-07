@@ -21,7 +21,7 @@ import {
   selectIsLoading,
   selectAllWorkspaces,
 } from '../store/Workspaces/selectors';
-import WorkspaceDetailsPage, { WorkspaceDetails as Details } from '../pages/WorkspaceDetails';
+import WorkspaceDetailsPage, { WorkspaceDetailsTabs, WorkspaceDetails as Details } from '../pages/WorkspaceDetails';
 import { AlertVariant } from '@patternfly/react-core';
 
 type Props =
@@ -80,7 +80,7 @@ class WorkspaceDetails extends React.PureComponent<Props> {
       this.props.history.replace({ pathname });
       this.props.setWorkspaceId(newWorkspaceObj.id);
     } catch (e) {
-      if (this.workspaceDetailsPageRef.current?.state.activeTabKey === 4) {
+      if (this.workspaceDetailsPageRef.current?.state.activeTabKey === WorkspaceDetailsTabs.Devfile) {
         throw new Error(e.toString().replace(/^Error: /gi, ''));
       }
       this.showAlert(AlertVariant.danger, 'Failed to update workspace data', 10000);

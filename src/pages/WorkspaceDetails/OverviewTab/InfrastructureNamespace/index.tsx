@@ -11,7 +11,7 @@
  */
 
 import React from 'react';
-import { FormGroup, Text, TextContent } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
 
 import styles from './index.module.css';
 
@@ -23,10 +23,10 @@ class InfrastructureNamespaceFormGroup extends React.PureComponent<Props> {
 
   public render(): React.ReactElement {
     return (
-      <FormGroup label="Kubernetes Namespace" fieldId="infrastructure-namespace" className={styles.kubernetesNamespace}>
-        <TextContent>
-          <Text className={styles.name}>{this.props.namespace}</Text>
-        </TextContent>
+      <FormGroup label="Kubernetes Namespace" fieldId="infrastructure-namespace">
+        <div className={styles.kubernetesNamespace}>
+          {this.props.namespace}
+        </div>
       </FormGroup>
     );
   }

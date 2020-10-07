@@ -10,7 +10,7 @@
  *   Red Hat, Inc. - initial API and implementation
  */
 
-import { Button, FormGroup, InputGroup, Text, TextContent, TextInput, ValidatedOptions } from '@patternfly/react-core';
+import { Button, FormGroup, InputGroup, TextInput, ValidatedOptions } from '@patternfly/react-core';
 import { CheckIcon, ExclamationCircleIcon, PencilAltIcon, TimesIcon } from '@patternfly/react-icons';
 import React from 'react';
 
@@ -27,6 +27,8 @@ const ERROR_PATTERN_MISMATCH = 'The name can contain digits, latin letters, unde
 type Props = {
   name: string;
   onSave: (name: string) => void;
+  onChange?: (name: string) => void;
+  callbacks?: { cancelChanges?: () => void }
 };
 
 type State = {
@@ -47,6 +49,10 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
       validated: ValidatedOptions.default,
       isEditMode: false,
     };
+
+    if (this.props.callbacks && !this.props.callbacks.cancelChanges) {
+      this.props.callbacks.cancelChanges = () => this.handleCancel();
+    }
   }
 
   public componentDidUpdate(prevProps: Props): void {
@@ -55,15 +61,10 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
       this.setState({
         name: this.props.name,
       });
+      if (this.props.onChange) {
+        this.props.onChange(this.props.name);
+      }
     }
-  }
-
-  public cancelChanges(): void {
-    this.setState({
-      isEditMode: false,
-      hasChanges: false,
-      name: this.props.name,
-    });
   }
 
   private handleEditModeToggle(): void {
@@ -79,6 +80,9 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
       hasChanges,
     });
     this.validate(name);
+    if (this.props.onChange) {
+      this.props.onChange(name);
+    }
   }
 
   private validate(name: string): void {
@@ -124,6 +128,9 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
       });
     }
     this.handleEditModeToggle();
+    if (this.props.onChange) {
+      this.props.onChange(this.props.name);
+    }
   }
 
   private handleCancel(): void {
@@ -134,6 +141,9 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
       hasChanges: false,
     });
     this.handleEditModeToggle();
+    if (this.props.onChange) {
+      this.props.onChange(this.props.name);
+    }
   }
 
   public render(): React.ReactElement {
@@ -150,19 +160,15 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
         helperTextInvalidIcon={<ExclamationCircleIcon />}
         validated={validated}
       >
-        <TextContent>
-          <Text className={styles.name}>
-            {(!isEditMode) && (
-              <React.Fragment>
-                {name}
-                <Button data-testid="handle-edit-mode-toggle" variant="plain"
-                  onClick={() => this.handleEditModeToggle()}>
-                  <PencilAltIcon />
-                </Button>
-              </React.Fragment>
-            )}
-          </Text>
-        </TextContent>
+        {(!isEditMode) && (
+          <span className={styles.name}>
+            {name}
+            <Button data-testid="handle-edit-mode-toggle" variant="plain"
+              onClick={() => this.handleEditModeToggle()}>
+              <PencilAltIcon />
+            </Button>
+          </span>
+        )}
         {(isEditMode) && (
           <InputGroup className={styles.nameInput}>
             <TextInput
@@ -179,7 +185,7 @@ export class WorkspaceNameFormGroup extends React.PureComponent<Props, State> {
               placeholder="Enter a workspace name"
             />
             <Button variant="link" data-testid="handle-on-save" isDisabled={isSaveButtonDisable}
-              onClick={async () => this.handleSave()}>
+              onClick={() => this.handleSave()}>
               <CheckIcon />
             </Button>
             <Button variant="plain" data-testid="handle-on-cancel" onClick={() => this.handleCancel()}>

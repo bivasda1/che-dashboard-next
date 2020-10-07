@@ -11,11 +11,6 @@
 */
 
 .kubernetesNamespace {
-  min-height: 38px;
-}
-
-.name {
   padding-top: 6px;
-  font-size: large;
-  line-height: 25px;
+  line-height: 30px;
 }

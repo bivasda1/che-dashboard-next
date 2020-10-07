@@ -23,18 +23,13 @@ import {
   Alert,
   AlertVariant,
 } from '@patternfly/react-core';
+import { StorageType } from '../../../../services/types';
 import { AppState } from '../../../../store';
 import { connect, ConnectedProps } from 'react-redux';
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { selectSettings } from '../../../../store/Workspaces/selectors';
 
 import styles from './index.module.css';
-
-export enum StorageType {
-  async = 'Asynchronous',
-  ephemeral = 'Ephemeral',
-  persistent = 'Persistent',
-}
 
 type Props =
   MappedProps
@@ -128,9 +123,10 @@ export class StorageTypeFormGroup extends React.PureComponent<Props, State> {
     </TextContent>);
   }
 
-  private getSelectorModalContent(): React.ReactNode {
+  private getSelectorModal(): React.ReactNode {
     const { hasAsync, hasPersistent, hasEphemeral } = this.getExistingTypes();
-    const { selected } = this.state;
+    const { isSelectorOpen, selected } = this.state;
+    const originSelection = this.props.storageType ? this.props.storageType : this.preferredType;
 
     const asyncTypeDescr = hasAsync ?
       (<Text component={TextVariants.h6}><Radio
@@ -156,7 +152,15 @@ export class StorageTypeFormGroup extends React.PureComponent<Props, State> {
       /></Text>) : '';
 
     return (
-      <React.Fragment>
+      <Modal variant={ModalVariant.small} isOpen={isSelectorOpen} className={styles.modalEditStorageType}
+        title="Edit Storage Type"
+        onClose={() => this.handleCancelChanges()}
+        actions={[
+          <Button key="confirm" variant="primary" isDisabled={originSelection === selected}
+            onClick={() => this.handleConfirmChanges()}>Save</Button>,
+          <Button key="cancel" variant="secondary" onClick={() => this.handleCancelChanges()}>Cancel</Button>,
+        ]}
+      >
         <TextContent>
           <Alert variant={AlertVariant.warning} className={styles.warningAlert}
             title="Note that after changing the storage type you may lose workspace data." isInline />
@@ -165,7 +169,7 @@ export class StorageTypeFormGroup extends React.PureComponent<Props, State> {
           {ephemeralTypeDescr}
           {asyncTypeDescr}
         </TextContent>
-      </React.Fragment>);
+      </Modal>);
   }
 
   private handleConfirmChanges(): void {
@@ -186,8 +190,7 @@ export class StorageTypeFormGroup extends React.PureComponent<Props, State> {
   }
 
   public render(): React.ReactNode {
-    const originSelection = this.props.storageType ? this.props.storageType : this.preferredType;
-    const { isSelectorOpen, selected, isInfoOpen } = this.state;
+    const { selected, isInfoOpen } = this.state;
 
     return (
       <FormGroup
@@ -198,30 +201,13 @@ export class StorageTypeFormGroup extends React.PureComponent<Props, State> {
             <OutlinedQuestionCircleIcon />
           </Button>
         }>
-        <TextContent>
-          <Text className={styles.storageType}>
-            {selected}
-            <Button variant='plain' onClick={() => this.handleEditToggle(true)}>
-              <PencilAltIcon />
-            </Button>
-          </Text>
-        </TextContent>
-        <Modal variant={ModalVariant.small} isOpen={isSelectorOpen} className={styles.modalEditStorageType}
-          title="Edit Storage Type"
-          onClose={() => this.handleCancelChanges()}
-          actions={[
-            <Button key="confirm" variant="primary" isDisabled={originSelection === selected}
-              onClick={() => this.handleConfirmChanges()}>
-              Save
-                 </Button>,
-            <Button key="cancel" variant="secondary" onClick={() => this.handleCancelChanges()}>
-              Cancel
-                 </Button>,
-          ]}
-        >
-          {this.getSelectorModalContent()}
-        </Modal>
-
+        <span className={styles.storageType}>
+          {selected}
+          <Button variant="plain" onClick={() => this.handleEditToggle(true)}>
+            <PencilAltIcon />
+          </Button>
+        </span>
+        {this.getSelectorModal()}
         <Modal title="Storage Type info" variant={ModalVariant.small} isOpen={isInfoOpen} onClose={() => {
           this.handleInfoToggle();
         }}>

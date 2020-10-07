@@ -39,14 +39,19 @@ import './WorkspaceDetails.styl';
 
 export const SECTION_THEME = PageSectionVariants.light;
 
+export enum WorkspaceDetailsTabs {
+  Overview = 0,
+  Devfile = 4,
+}
+
 type Props =
   {
     onSave: (workspace: che.Workspace) => Promise<void>
   } & MappedProps;
 
 type State = {
-  activeTabKey?: number;
-  clickedTabIndex?: number;
+  activeTabKey?: WorkspaceDetailsTabs;
+  clickedTabIndex?: WorkspaceDetailsTabs;
   workspace?: che.Workspace | null | undefined;
   alertVisible?: boolean;
   hasWarningMessage?: boolean;
@@ -78,8 +83,9 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
 
     // Toggle currently active tab
     this.handleTabClick = (event: any, tabIndex: any): void => {
-      if ((this.state.activeTabKey === 4 && this.editorTabPageRef.current?.state.hasChanges) ||
-        (this.state.activeTabKey === 0 && this.overviewTabPageRef.current?.hasChanges)) {
+      if ((this.state.activeTabKey === WorkspaceDetailsTabs.Devfile && this.editorTabPageRef.current?.state.hasChanges) ||
+        (this.state.activeTabKey === WorkspaceDetailsTabs.Overview && this.overviewTabPageRef.current?.hasChanges) ||
+        (this.props.isLoading)) {
         const focusedElement = (
           document.hasFocus() &&
           document.activeElement !== document.body &&
@@ -89,7 +95,9 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
         if (focusedElement) {
           (focusedElement as HTMLBaseElement).blur();
         }
-        this.setState({ hasDiscardChangesMessage: true, clickedTabIndex: tabIndex });
+        if (!this.props.isLoading) {
+          this.setState({ hasDiscardChangesMessage: true, clickedTabIndex: tabIndex });
+        }
         return;
       }
       this.setState({ hasDiscardChangesMessage: false, clickedTabIndex: tabIndex, activeTabKey: tabIndex });
@@ -115,9 +123,9 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
   }
 
   private handleDiscardChanges(): void {
-    if (this.state.activeTabKey === 4) {
+    if (this.state.activeTabKey === WorkspaceDetailsTabs.Devfile) {
       this.editorTabPageRef.current?.cancelChanges();
-    } else if (this.state.activeTabKey === 0) {
+    } else if (this.state.activeTabKey === WorkspaceDetailsTabs.Overview) {
       this.overviewTabPageRef.current?.cancelChanges();
     }
 
@@ -137,7 +145,7 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
       return <div>Workspace not found.</div>;
     }
 
-    const workspaceName = workspace.devfile.metadata.name as string;
+    const workspaceName = workspace.devfile.metadata.name ? workspace.devfile.metadata.name : '';
 
     return (
       <React.Fragment>
@@ -162,17 +170,19 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
               } />
           )}
           <Tabs activeKey={this.state.activeTabKey} onSelect={this.handleTabClick}>
-            <Tab eventKey={0} title="Overview">
+            <Tab eventKey={WorkspaceDetailsTabs.Overview} title={WorkspaceDetailsTabs[WorkspaceDetailsTabs.Overview]}>
               <CheProgress isLoading={this.props.isLoading} />
               <OverviewTab
                 ref={this.overviewTabPageRef}
+                workspace={workspace}
                 onSave={workspace => this.onSave(workspace)}
               />
             </Tab>
-            <Tab eventKey={4} title="Devfile">
+            <Tab eventKey={WorkspaceDetailsTabs.Devfile} title={WorkspaceDetailsTabs[WorkspaceDetailsTabs.Devfile]}>
               <CheProgress isLoading={this.props.isLoading} />
               <EditorTab
                 ref={this.editorTabPageRef}
+                workspace={workspace}
                 onSave={workspace => this.onSave(workspace)} />
             </Tab>
           </Tabs>
@@ -200,7 +210,7 @@ export class WorkspaceDetails extends React.PureComponent<Props, State> {
   }
 
   private async onSave(workspace: che.Workspace): Promise<void> {
-    if (this.props.workspace && (WorkspaceStatus[this.props.workspace?.status] !== WorkspaceStatus.STOPPED)) {
+    if (this.props.workspace && (WorkspaceStatus[this.props.workspace.status] !== WorkspaceStatus.STOPPED)) {
       this.setState({ hasWarningMessage: true });
     }
     await this.props.onSave(workspace);

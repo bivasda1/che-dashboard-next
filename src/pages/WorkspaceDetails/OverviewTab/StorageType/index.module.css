@@ -31,14 +31,14 @@ button.labelIcon {
 }
 
 .storageType {
+  position: relative;
+  top: 2px;
   color: #3083d6;
-  font-size: large;
-  line-height: 38px;
 }
 
 .storageType button {
-  padding: 0 15px;
-  outline: none;
+  bottom: 1px;
+  margin-left: 3px;
 }
 
 .warningAlert h4 {

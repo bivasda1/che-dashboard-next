@@ -11,9 +11,14 @@
 */
 
 .name {
+  position: relative;
+  top: 2px;
   color: #3083d6;
-  font-size: large;
-  line-height: 38px;
+}
+
+.name button {
+  bottom: 1px;
+  margin-left: 3px;
 }
 
 .nameInput {

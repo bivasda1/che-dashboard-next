@@ -11,50 +11,49 @@
  */
 
 import React from 'react';
-import { connect, ConnectedProps } from 'react-redux';
 import { Form, PageSection, PageSectionVariants } from '@patternfly/react-core';
-import { AppState } from '../../../store';
-import StorageTypeFormGroup, { StorageType } from './StorageType';
+import StorageTypeFormGroup from './StorageType';
+import { StorageType } from '../../../services/types';
 import { WorkspaceNameFormGroup } from './WorkspaceName';
 import InfrastructureNamespaceFormGroup from './InfrastructureNamespace';
-import { selectWorkspaceById } from '../../../store/Workspaces/selectors';
 
 type Props = {
-  onSave: (workspace: che.Workspace) => Promise<void>
-} & MappedProps;
+  onSave: (workspace: che.Workspace) => Promise<void>;
+  workspace: che.Workspace;
+};
 
 export type State = {
-  storageType?: StorageType;
-  devfile?: che.WorkspaceDevfile;
-  namespace?: string;
-  workspaceName?: string;
+  storageType: StorageType;
+  devfile: che.WorkspaceDevfile;
+  namespace: string;
+  workspaceName: string;
 };
 
 export class OverviewTab extends React.Component<Props, State> {
-  private readonly workspaceNameRef: React.RefObject<WorkspaceNameFormGroup>;
+  private isWorkspaceNameChanged = false;
+  private workspaceNameCallbacks: { cancelChanges?: () => void } = {};
 
   constructor(props: Props) {
     super(props);
 
     if (this.props.workspace) {
-      const devfile = Object.assign({}, this.props.workspace?.devfile);
+      const devfile = Object.assign({}, this.props.workspace.devfile);
       const storageType = this.getStorageType(devfile as che.WorkspaceDevfile);
       const workspaceName = devfile.metadata.name ? devfile.metadata.name : '';
-      const namespace = this.props.workspace?.namespace;
+      const namespace = this.props.workspace.namespace ? this.props.workspace.namespace : '';
 
       this.state = { devfile, storageType, workspaceName, namespace };
     }
 
-    this.workspaceNameRef = React.createRef<WorkspaceNameFormGroup>();
   }
 
   public get hasChanges() {
-    return this.workspaceNameRef.current && this.workspaceNameRef.current?.state.hasChanges;
+    return this.isWorkspaceNameChanged;
   }
 
   public cancelChanges(): void {
-    if (this.workspaceNameRef.current && this.workspaceNameRef.current?.cancelChanges) {
-      this.workspaceNameRef.current?.cancelChanges();
+    if (this.workspaceNameCallbacks.cancelChanges) {
+      this.workspaceNameCallbacks.cancelChanges();
     }
   }
 
@@ -120,10 +119,10 @@ export class OverviewTab extends React.Component<Props, State> {
   }
 
   public render(): React.ReactElement {
-    const namespace = this.state.namespace as string;
-    const devfile = this.props.workspace?.devfile as che.WorkspaceDevfile;
+    const devfile = this.props.workspace.devfile;
     const storageType = this.getStorageType(devfile);
-    const workspaceName = devfile.metadata.name as string;
+    const workspaceName = devfile.metadata.name ? devfile.metadata.name : '';
+    const namespace = this.state.namespace;
 
     return (
       <React.Fragment>
@@ -133,8 +132,11 @@ export class OverviewTab extends React.Component<Props, State> {
           <Form isHorizontal>
             <WorkspaceNameFormGroup
               name={workspaceName}
-              onSave={_name => this.handleWorkspaceNameSave(_name)}
-              ref={this.workspaceNameRef}
+              onSave={_workspaceName => this.handleWorkspaceNameSave(_workspaceName)}
+              onChange={_workspaceName => {
+                this.isWorkspaceNameChanged = workspaceName !== _workspaceName;
+              }}
+              callbacks={this.workspaceNameCallbacks}
             />
             <InfrastructureNamespaceFormGroup namespace={namespace} />
             <StorageTypeFormGroup
@@ -151,7 +153,7 @@ export class OverviewTab extends React.Component<Props, State> {
     const workspace = this.props.workspace;
     const newDevfile = this.state.devfile as che.WorkspaceDevfile;
 
-    const newWorkspaceObj = Object.assign({}, workspace) as che.Workspace;
+    const newWorkspaceObj = Object.assign({}, workspace);
     newWorkspaceObj.devfile = newDevfile;
 
     await this.props.onSave(newWorkspaceObj);
@@ -159,16 +161,4 @@ export class OverviewTab extends React.Component<Props, State> {
 
 }
 
-const mapStateToProps = (state: AppState) => ({
-  workspace: selectWorkspaceById(state),
-});
-
-const connector = connect(
-  mapStateToProps,
-  null,
-  null,
-  { forwardRef: true },
-);
-
-type MappedProps = ConnectedProps<typeof connector>
-export default connector(OverviewTab);
+export default OverviewTab;

@@ -20,23 +20,17 @@ import {
   AlertGroup,
 } from '@patternfly/react-core';
 import DevfileEditor, { DevfileEditor as Editor } from '../../../components/DevfileEditor';
-import { connect, ConnectedProps } from 'react-redux';
-import { AppState } from '../../../store';
-import { selectWorkspaceById } from '../../../store/Workspaces/selectors';
 import EditorTools from './EditorTools';
 
 import './DevfileTab.styl';
 
-type Props =
-  // selectors
-  {
-    workspace: che.Workspace | null | undefined,
-  } & {
-    onSave: (workspace: che.Workspace) => Promise<void>,
-  } & MappedProps;
+type Props = {
+  onSave: (workspace: che.Workspace) => Promise<void>;
+  workspace: che.Workspace;
+};
 
 type State = {
-  devfile?: che.WorkspaceDevfile,
+  devfile?: che.WorkspaceDevfile;
   hasChanges?: boolean;
   hasRequestErrors?: boolean;
   currentRequestError?: string;
@@ -158,7 +152,7 @@ export class EditorTab extends React.PureComponent<Props, State> {
       this.setState({ hasChanges: false });
       return;
     }
-    if (this.isEqualObject(this.props.workspace?.devfile as che.WorkspaceDevfile, devfile)) {
+    if (this.isEqualObject(this.props.workspace.devfile as che.WorkspaceDevfile, devfile)) {
       this.setState({ hasChanges: false });
       return;
     }
@@ -174,7 +168,7 @@ export class EditorTab extends React.PureComponent<Props, State> {
     if (!devfile) {
       return;
     }
-    const newWorkspaceObj = Object.assign({}, this.props.workspace as che.Workspace);
+    const newWorkspaceObj = Object.assign({}, this.props.workspace);
     newWorkspaceObj.devfile = devfile;
     this.setState({
       hasChanges: false,
@@ -200,24 +194,9 @@ export class EditorTab extends React.PureComponent<Props, State> {
     }, {} as che.WorkspaceDevfile);
   }
 
-  private isEqualObject(a: che.WorkspaceDevfile | undefined, b: che.WorkspaceDevfile | undefined): boolean {
-    if (!a) {
-      return !b;
-    }
+  private isEqualObject(a: che.WorkspaceDevfile, b: che.WorkspaceDevfile): boolean {
     return JSON.stringify(this.sortObject(a)) == JSON.stringify(this.sortObject(b as che.WorkspaceDevfile));
   }
 }
 
-const mapStateToProps = (state: AppState) => ({
-  workspace: selectWorkspaceById(state),
-});
-
-const connector = connect(
-  mapStateToProps,
-  null,
-  null,
-  { forwardRef: true },
-);
-
-type MappedProps = ConnectedProps<typeof connector>
-export default connector(EditorTab);
+export default EditorTab;
